@@ -2,7 +2,7 @@ package resque
 
 import (
   "encoding/json"
-  redis "github.com/simonz05/godis"
+  "github.com/vmihailenco/redis"
 )
 
 type jobArg interface{}
@@ -17,7 +17,7 @@ func Enqueue(client *redis.Client, queue, job_class string, args ...jobArg) (int
 
   job_json, _ := json.Marshal(j)
 
-  return client.Lpush("resque:queue:"+queue, job_json)
+  return client.LPush("resque:queue:"+queue, job_json)
 }
 
 func makeJobArgs(args []jobArg) []jobArg {
