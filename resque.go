@@ -12,12 +12,12 @@ type job struct {
   Args  []jobArg `json:"args"`
 }
 
-func Enqueue(client *redis.Client, queue, job_class string, args ...jobArg) (int64, error) {
+func Enqueue(client *redis.Client, queue, job_class string, args ...jobArg) int64 {
   var j = &job{job_class, makeJobArgs(args)}
 
   job_json, _ := json.Marshal(j)
 
-  return client.LPush("resque:queue:"+queue, job_json)
+  return client.LPush("resque:queue:"+queue, string(job_json[:])).Val()
 }
 
 func makeJobArgs(args []jobArg) []jobArg {
