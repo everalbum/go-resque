@@ -12,7 +12,7 @@ type job struct {
   Args  []jobArg `json:"args"`
 }
 
-func Enqueue(client *redis.Conn, queue, job_class string, args ...jobArg) int64, err {
+func Enqueue(client redis.Conn, queue, job_class string, args ...jobArg) (int64, error) {
   var j = &job{job_class, makeJobArgs(args)}
 
   job_json, _ := json.Marshal(j)
