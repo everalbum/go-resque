@@ -1,30 +1,38 @@
 package resque
 
 import (
-  "encoding/json"
-  "github.com/garyburd/redigo/redis"
+	"encoding/json"
+	"github.com/garyburd/redigo/redis"
 )
 
-type jobArg interface{}
-
-type job struct {
-  Class string   `json:"class"`
-  Args  []jobArg `json:"args"`
+type Job struct {
+	Class string   `json:"class"`
+	Args  []interface{} `json:"args"`
 }
 
-func Enqueue(client redis.Conn, queue, job_class string, args ...jobArg) (int64, error) {
-  var j = &job{job_class, makeJobArgs(args)}
-
-  job_json, _ := json.Marshal(j)
-
-  return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, string(job_json[:])))
+func NewJob(job_class string, args []interface{}) *Job {
+	return &Job{job_class, makeJobArgs(args)}
 }
 
-func makeJobArgs(args []jobArg) []jobArg {
-  if len(args) == 0 {
-    // NOTE: Dirty hack to make a [{}] JSON struct
-    return append(make([]jobArg, 0), make(map[string]jobArg, 0))
-  }
+func (j *Job) Encode() (jsonString string) {
+	if jsonBytes, err := json.Marshal(&j); err == nil {
+		jsonString = string(jsonBytes)
+	}
 
-  return args
+	return
+}
+
+func Enqueue(client redis.Conn, queue, job_class string, args ...interface{}) (int64, error) {
+	job := NewJob(job_class, args)
+
+	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, job.Encode()))
+}
+
+func makeJobArgs(args []interface{}) []interface{} {
+	if len(args) == 0 {
+		// NOTE: Dirty hack to make a [{}] JSON struct
+		return append(make([]interface{}, 0), make(map[string]interface{}, 0))
+	}
+
+	return args
 }
