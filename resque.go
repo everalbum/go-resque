@@ -10,8 +10,8 @@ type Job struct {
 	Args  []interface{} `json:"args"`
 }
 
-func NewJob(job_class string, args []interface{}) *Job {
-	return &Job{job_class, makeJobArgs(args)}
+func NewJob(jobClass string, args []interface{}) *Job {
+	return &Job{jobClass, makeJobArgs(args)}
 }
 
 func (j *Job) Encode() (jsonString string) {
@@ -22,10 +22,14 @@ func (j *Job) Encode() (jsonString string) {
 	return
 }
 
-func Enqueue(client redis.Conn, queue, job_class string, args ...interface{}) (int64, error) {
-	job := NewJob(job_class, args)
+func (j *Job) Enqueue(client redis.Conn, queue string) (int64, error) {
+	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.Encode()))
+}
 
-	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, job.Encode()))
+func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
+	job := NewJob(jobClass, args)
+
+	return job.Enqueue(client, queue)
 }
 
 func makeJobArgs(args []interface{}) []interface{} {
