@@ -53,3 +53,9 @@ func main() {
 }
 ```
 
+This also works with [resque-scheduler](https://github.com/resque/resque-scheduler). You can enqueue jobs using `EnqueueIn` to enqueue a job N seconds in the future.
+
+```
+  // Enqueues this job 60 seconds from now.
+  resque.EnqueueIn(conn, 60, "default", "Demo::Job", 1, 2, "woot")
+```
