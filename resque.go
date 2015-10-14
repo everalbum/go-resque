@@ -27,7 +27,7 @@ func (j job) encode() (jsonString string) {
 }
 
 func (j job) enqueue(client redis.Conn, queue string) (int64, error) {
-	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.encode()))
+	return redis.Int64(client.Do("RPUSH", "resque:queue:"+queue, j.encode()))
 }
 
 func (j job) enqueueAt(client redis.Conn, t time.Time, queue string) error {
