@@ -1,5 +1,7 @@
 # go-resque
 
+[![GoDoc](https://godoc.org/github.com/everalbum/go-resque?status.svg)](https://godoc.org/github.com/everalbum/go-resque)
+
 Simple [Resque](https://github.com/defunkt/resque) queue client for [Go](http://golang.org).
 
 ## Installation
