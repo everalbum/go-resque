@@ -5,7 +5,7 @@ Simple [Resque](https://github.com/defunkt/resque) queue client for [Go](http://
 ## Installation
 
 ```
-go get github.com/cmelbye/go-resque
+go get github.com/everalbum/go-resque
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ Enqueue this job from Go:
 package main
 
 import (
-  "github.com/cmelbye/go-resque"
+  "github.com/everalbum/go-resque"
   "github.com/garyburd/redigo/redis"
 )
 
@@ -53,3 +53,14 @@ func main() {
 }
 ```
 
+This also works with [resque-scheduler](https://github.com/resque/resque-scheduler). You can enqueue jobs using `EnqueueIn` or `EnqueueAt` to enqueue a job in the future.
+
+```
+  // Enqueues this job 60 seconds from now.
+  delay := time.Duration(60) * time.Second
+  resque.EnqueueIn(conn, delay, "default", "Demo::Job", 1, 2, "woot")
+  
+  // Enqueues this job at a specific time
+  t := time.Now().Add(delay)
+  resque.EnqueueAt(conn, t, "default", "Demo::Job", 1, 2, "woot")
+```
