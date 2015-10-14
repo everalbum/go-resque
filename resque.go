@@ -33,17 +33,19 @@ func (j *Job) Enqueue(client redis.Conn, queue string) (int64, error) {
 	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.Encode()))
 }
 
-func (j *Job) EnqueueAt(client redis.Conn, t time.Time, queue string) (int64, error) {
+func (j *Job) EnqueueAt(client redis.Conn, t time.Time, queue string) error {
 	jsonString := j.Encode()
 
 	queueKey := fmt.Sprintf("resque:delayed:%d", t.Unix())
 	timestampsValue := fmt.Sprintf("delayed:%d", t.Unix())
 
-	redis.Int64(client.Do("RPUSH", queueKey, jsonString))
-	redis.Int64(client.Do("SADD", "resque:timestamps:"+jsonString, timestampsValue))
-	redis.Int64(client.Do("ZADD", "resque:delayed_queue_schedule", t.Unix(), t.Unix()))
+	client.Send("MULTI")
+	client.Send("RPUSH", queueKey, jsonString)
+	client.Send("SADD", "resque:timestamps:"+jsonString, timestampsValue)
+	client.Send("ZADD", "resque:delayed_queue_schedule", t.Unix(), t.Unix())
+	_, err := client.Do("EXEC")
 
-	return 1, nil
+	return err
 }
 
 func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
@@ -52,7 +54,7 @@ func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (in
 	return job.Enqueue(client, queue)
 }
 
-func EnqueueIn(client redis.Conn, seconds int, queue, jobClass string, args ...interface{}) (int64, error) {
+func EnqueueIn(client redis.Conn, seconds int, queue, jobClass string, args ...interface{}) error {
 	job := NewJob(jobClass, args, queue)
 	delay := time.Duration(seconds) * time.Second
 	enqueueTime := time.Now().Add(delay)
