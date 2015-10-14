@@ -17,7 +17,7 @@ func NewJob(jobClass string, args []interface{}, queue string) *Job {
 	return &Job{jobClass, makeJobArgs(args), queue}
 }
 
-func (j *Job) Encode() (jsonString string) {
+func (j *Job) encode() (jsonString string) {
 	if jsonBytes, err := json.Marshal(&j); err == nil {
 		jsonString = string(jsonBytes)
 	}
@@ -26,11 +26,11 @@ func (j *Job) Encode() (jsonString string) {
 }
 
 func (j *Job) Enqueue(client redis.Conn, queue string) (int64, error) {
-	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.Encode()))
+	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.encode()))
 }
 
 func (j *Job) EnqueueAt(client redis.Conn, t time.Time, queue string) error {
-	jsonString := j.Encode()
+	jsonString := j.encode()
 
 	queueKey := fmt.Sprintf("resque:delayed:%d", t.Unix())
 	timestampsValue := fmt.Sprintf("delayed:%d", t.Unix())
