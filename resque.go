@@ -14,11 +14,11 @@ type job struct {
 	Args  []interface{} `json:"args"`
 }
 
-func newJob(queue, jobClass string, args []interface{}) *Job {
-	return &Job{jobClass, makeJobArgs(args), queue}
+func newJob(queue, jobClass string, args []interface{}) job {
+	return job{queue, jobClass, makeJobArgs(args)}
 }
 
-func (j *job) encode() (jsonString string) {
+func (j job) encode() (jsonString string) {
 	if jsonBytes, err := json.Marshal(&j); err == nil {
 		jsonString = string(jsonBytes)
 	}
@@ -26,11 +26,11 @@ func (j *job) encode() (jsonString string) {
 	return
 }
 
-func (j *job) enqueue(client redis.Conn, queue string) (int64, error) {
+func (j job) enqueue(client redis.Conn, queue string) (int64, error) {
 	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.encode()))
 }
 
-func (j *job) enqueueAt(client redis.Conn, t time.Time, queue string) error {
+func (j job) enqueueAt(client redis.Conn, t time.Time, queue string) error {
 	jsonString := j.encode()
 
 	queueKey := fmt.Sprintf("resque:delayed:%d", t.Unix())
@@ -46,22 +46,22 @@ func (j *job) enqueueAt(client redis.Conn, t time.Time, queue string) error {
 }
 
 func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
-	job := NewJob(jobClass, args, "")
+	job := newJob(queue, jobClass, args)
 
-	return job.Enqueue(client, queue)
+	return job.enqueue(client, queue)
 }
 
 func EnqueueIn(client redis.Conn, delay time.Duration, queue, jobClass string, args ...interface{}) error {
-	job := NewJob(jobClass, args, queue)
+	job := newJob(queue, jobClass, args)
 	enqueueTime := time.Now().Add(delay)
 
-	return job.EnqueueAt(client, enqueueTime, queue)
+	return job.enqueueAt(client, enqueueTime, queue)
 }
 
 func EnqueueAt(client redis.Conn, t time.Time, queue, jobClass string, args ...interface{}) error {
-	job := NewJob(jobClass, args, queue)
+	job := newJob(queue, jobClass, args)
 
-	return job.EnqueueAt(client, t, queue)
+	return job.enqueueAt(client, t, queue)
 }
 
 func makeJobArgs(args []interface{}) []interface{} {
