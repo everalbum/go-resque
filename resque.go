@@ -13,10 +13,6 @@ type Job struct {
 	Queue string        `json:"queue,omitempty"`
 }
 
-type Encoder interface {
-	Encode() string
-}
-
 func NewJob(jobClass string, args []interface{}, queue string) *Job {
 	return &Job{jobClass, makeJobArgs(args), queue}
 }
@@ -54,9 +50,8 @@ func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (in
 	return job.Enqueue(client, queue)
 }
 
-func EnqueueIn(client redis.Conn, seconds int, queue, jobClass string, args ...interface{}) error {
+func EnqueueIn(client redis.Conn, delay time.Duration, queue, jobClass string, args ...interface{}) error {
 	job := NewJob(jobClass, args, queue)
-	delay := time.Duration(seconds) * time.Second
 	enqueueTime := time.Now().Add(delay)
 
 	return job.EnqueueAt(client, enqueueTime, queue)
