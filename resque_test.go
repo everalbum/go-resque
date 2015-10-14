@@ -1,9 +1,9 @@
 package resque
 
 import (
-	"testing"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"testing"
 )
 
 var realjson = `{"class":"test","args":[1,true,"hello",3.14]}`
@@ -14,7 +14,7 @@ func equal(a, b interface{}) bool {
 }
 
 func TestNewJob(t *testing.T) {
-	job := NewJob("test", args)
+	job := NewJob("test", args, "")
 
 	if job.Class != "test" {
 		t.Errorf("got class %q, want %q", job.Class, "test")
@@ -25,7 +25,7 @@ func TestNewJob(t *testing.T) {
 }
 
 func TestJob_Encode(t *testing.T) {
-	job := NewJob("test", args)
+	job := NewJob("test", args, "")
 
 	if json := job.Encode(); json != realjson {
 		t.Errorf("got encoded %q, want %q", job.Encode(), realjson)

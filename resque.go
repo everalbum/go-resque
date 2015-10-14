@@ -2,16 +2,23 @@ package resque
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"time"
 )
 
 type Job struct {
-	Class string   `json:"class"`
+	Class string        `json:"class"`
 	Args  []interface{} `json:"args"`
+	Queue string        `json:"queue,omitempty"`
 }
 
-func NewJob(jobClass string, args []interface{}) *Job {
-	return &Job{jobClass, makeJobArgs(args)}
+type Encoder interface {
+	Encode() string
+}
+
+func NewJob(jobClass string, args []interface{}, queue string) *Job {
+	return &Job{jobClass, makeJobArgs(args), queue}
 }
 
 func (j *Job) Encode() (jsonString string) {
@@ -26,10 +33,31 @@ func (j *Job) Enqueue(client redis.Conn, queue string) (int64, error) {
 	return redis.Int64(client.Do("LPUSH", "resque:queue:"+queue, j.Encode()))
 }
 
+func (j *Job) EnqueueAt(client redis.Conn, t time.Time, queue string) (int64, error) {
+	jsonString := j.Encode()
+
+	queueKey := fmt.Sprintf("resque:delayed:%d", t.Unix())
+	timestampsValue := fmt.Sprintf("delayed:%d", t.Unix())
+
+	redis.Int64(client.Do("RPUSH", queueKey, jsonString))
+	redis.Int64(client.Do("SADD", "resque:timestamps:"+jsonString, timestampsValue))
+	redis.Int64(client.Do("ZADD", "resque:delayed_queue_schedule", t.Unix(), t.Unix()))
+
+	return 1, nil
+}
+
 func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
-	job := NewJob(jobClass, args)
+	job := NewJob(jobClass, args, "")
 
 	return job.Enqueue(client, queue)
+}
+
+func EnqueueIn(client redis.Conn, seconds int, queue, jobClass string, args ...interface{}) (int64, error) {
+	job := NewJob(jobClass, args, queue)
+	delay := time.Duration(seconds) * time.Second
+	enqueueTime := time.Now().Add(delay)
+
+	return job.EnqueueAt(client, enqueueTime, queue)
 }
 
 func makeJobArgs(args []interface{}) []interface{} {
