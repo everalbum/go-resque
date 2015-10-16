@@ -64,6 +64,10 @@ func EnqueueAt(client redis.Conn, t time.Time, queue, jobClass string, args ...i
 	return job.enqueueAt(client, t, queue)
 }
 
+func Size(client redis.Conn, queue string) (int64, error) {
+	return redis.Int64(client.Do("LLEN", "resque:queue:"+queue))
+}
+
 func makeJobArgs(args []interface{}) []interface{} {
 	if len(args) == 0 {
 		// NOTE: Dirty hack to make a [{}] JSON struct
