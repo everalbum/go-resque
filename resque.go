@@ -45,6 +45,10 @@ func (j job) enqueueAt(client redis.Conn, t time.Time, queue string) error {
 	return err
 }
 
+func (j job) failure(client redis.Conn, queue string) (int64, error) {
+	return redis.Int64(client.Do("RPUSH", "resque:failed:"+queue, j.encode()))
+}
+
 func Enqueue(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
 	job := newJob(queue, jobClass, args)
 
@@ -62,6 +66,12 @@ func EnqueueAt(client redis.Conn, t time.Time, queue, jobClass string, args ...i
 	job := newJob(queue, jobClass, args)
 
 	return job.enqueueAt(client, t, queue)
+}
+
+func Failure(client redis.Conn, queue, jobClass string, args ...interface{}) (int64, error) {
+	job := newJob(queue, jobClass, args)
+
+	return job.failure(client, queue)
 }
 
 func Size(client redis.Conn, queue string) (int64, error) {
